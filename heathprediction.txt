@@ -1,3 +1,16 @@
+#---Examples
+spark-shell
 
+spark.range (1).withColumn("satus", lit("All seems Good. Congrats!")).show(false)
+to run in local env - spark-shell --master local[1]
 
-welcome
+#----Range of numbers
+scala> val myRange = spark.range(1000).toDF("number")
+myRange: org.apache.spark.sql.DataFrame = [number: bigint]
+
+#----Actions:
+scala> val divisBy2 = myRange.where("number % 2=0")
+// divisBy2: org.apache.spark.sql.Dataset[org.apache.spark.sql.Row] = [number: bigint]
+
+scala> divisBy2.count()
+//res4: Long = 500
