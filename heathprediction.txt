@@ -36,3 +36,44 @@ df = spark.read.format(file_type) \
   .load(file_location)
 
 display(df)
+
+
+# -------Create a view or table
+
+temp_table_name = "train_2v_csv"
+
+df.createOrReplaceTempView(temp_table_name)
+
+
+#------%sql
+
+#-------/* Query the created temp table in a SQL cell */
+
+select * from `train_2v_csv`
+
+permanent_table_name = "train_2v_csv"
+
+##------ Importing pyspark.sql. Setting up Spark
+
+from pyspark.sql import SparkSession
+import pyspark.sql as sparksql
+spark = SparkSession.builder.appName('stroke').getOrCreate()
+
+#--------Setting path to the file
+train = spark.read.csv('/FileStore/tables/train_2v.csv', inferSchema=True,header=True)
+
+
+#---------CLEANING DATA- removing "blank rows" under Smoking_status
+
+train_f = train.na.fill('NO INFO', subset=['smoking_status'])
+
+#---- importing MEAN package from pyspark
+from pyspark.sql.functions import mean
+
+#---- fill in bmi values with mean values
+mean = train_f.select(mean(train_f['bmi'])).collect()
+mean_bmi = mean[0][0]
+#---- A mean of 0 means that the average value in the distribution is 0
+train_f = train_f.na.fill(mean_bmi,['bmi'])
+
+display(train_f)
