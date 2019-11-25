@@ -63,7 +63,7 @@ spark = SparkSession.builder.appName('stroke').getOrCreate()
 train = spark.read.csv('/FileStore/tables/train_2v.csv', inferSchema=True,header=True)
 
 
-#---------CLEANING DATA- removing "blank rows" under Smoking_status
+#---------CLEANING DATA- renaming "blank rows" under Smoking_status to NO_INFO----
 
 train_f = train.na.fill('NO INFO', subset=['smoking_status'])
 
