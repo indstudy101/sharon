@@ -77,3 +77,13 @@ mean_bmi = mean[0][0]
 train_f = train_f.na.fill(mean_bmi,['bmi'])
 
 display(train_f)
+
+#------- Displaying what age has stroke---
+train.groupBy('age','stroke').count().show()
+
+#----View what occupation (work_type )has stroke---
+spark.sql("SELECT work_type, count(work_type) as stroke_count FROM table WHERE stroke == 1 GROUP BY work_type ORDER BY stroke_count").show()
+
+
+# ----- Displaying rows with strokes = 0 
+spark.sql("SELECT * FROM table WHERE stroke = 0 ").show()
