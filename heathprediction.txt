@@ -103,3 +103,10 @@ spark.sql("SELECT work_type, count(work_type) as count, (COUNT(work_type) * 100.
 spark.sql("SELECT work_type, count(work_type) as count, (COUNT(work_type) * 100.0) /(SELECT count(work_type) FROM table WHERE work_type == 'Govt_job') as percentage FROM table WHERE stroke = '1' and work_type = 'Govt_job' GROUP BY work_type").show()
 spark.sql("SELECT work_type, count(work_type) as count, (COUNT(work_type) * 100.0) /(SELECT count(work_type) FROM table WHERE work_type == 'Self-employed') as percentage FROM table WHERE stroke = '1' and work_type = 'Self-employed' GROUP BY work_type").show()
 spark.sql("SELECT work_type, count(work_type) as count, (COUNT(work_type) * 100.0) /(SELECT count(work_type) FROM table WHERE work_type == 'Private') as percentage FROM table WHERE stroke = '1' and work_type = 'Private' GROUP BY work_type").show()
+
+#---Counting total strokes and number of strokes recorded above age 40
+
+train.filter(train['stroke'] == 1).count()
+train.filter((train['stroke'] == 1) & (train['age'] > '40')).count()
+
+
