@@ -55,9 +55,10 @@ permanent_table_name = "train_2v_csv"
 
 ##------ Importing pyspark.sql. Setting up Spark
 
+
 from pyspark.sql import SparkSession
 import pyspark.sql as sparksql
-spark = SparkSession.builder.appName('stroke').getOrCreate()
+spark = SparkSession.builder.appName('HeartStroke').getOrCreate()
 
 #--------Setting path to the file
 train = spark.read.csv('/FileStore/tables/train_2v.csv', inferSchema=True,header=True)
@@ -79,15 +80,28 @@ train_f = train_f.na.fill(mean_bmi,['bmi'])
 
 display(train_f)
 
-#------- Displaying what age has stroke---
-train.groupBy('age','stroke').count().show()
+#----Count of Hypertension, smoking_status, stroke-----
+train.groupBy('hypertension').count().show()
+train.groupBy('smoking_status').count().show()
+train.groupBy('stroke').count().show()
 
-#----View what occupation (work_type )has stroke---
+
+#----Count of married and not married---------
+spark.sql("select ever_married, count(ever_married) as count_ever_married from table where stroke == 1 group by ever_married order by count_ever_married").show()
+
+#----View what occupation (work_type )has stroke------
 spark.sql("SELECT work_type, count(work_type) as stroke_count FROM table WHERE stroke == 1 GROUP BY work_type ORDER BY stroke_count").show()
 
+#--total percentage of people in the data----
+spark.sql("SELECT work_type, count(work_type) as number_of_people, (COUNT(work_type) * 100.0) /(SELECT count(work_type) FROM table) as percentage FROM table GROUP BY work_type").show()
 
 # ----- Displaying rows with strokes = 0 -----
 spark.sql("SELECT * FROM table WHERE stroke = 0 ").show()
+
+
+#---The data here shows people who never worked has 0 stroke cases, this maybe misleading information in the data ---
+spark.sql("SELECT work_type, count(work_type) as number_of_people, (COUNT(work_type) * 100.0) /(SELECT count(work_type) FROM table WHERE work_type == 'Never_worked') as percentage FROM table WHERE stroke = '0' and work_type = 'Never_worked' GROUP BY work_type").show()
+
 
 #---Display stroke count and percentage on particular occupation---
 
@@ -116,13 +130,39 @@ train.filter((train['stroke'] == 1) & (train['age'] > '40')).count()
 #---Importing features VectorAssembler,OneHotEncoder, StringIndexer  for performing ML algorithm in catergorical values ----
 
 from pyspark.ml.feature import (VectorAssembler,OneHotEncoder, StringIndexer)
+
+##----Using assembler to use categorical variables in ML algorithm----
+
+assembler = VectorAssembler(inputCols=['genderVec',
+'age',
+'hypertension',
+'heart_disease',
+'ever_marriedVec',
+'work_typeVec',
+'Residence_typeVec',
+'avg_glucose_level',
+'bmi',
+'smoking_statusVec'],outputCol='features')
+
 #----PipelineStages.
 
 #------Import Pipeline-----------
 from pyspark.ml import Pipeline
 
-pipeline = Pipeline(stages=[gender_indexer, work_type_indexer, smoking_status_indexer, gender_encoder, work_type_encoder, smoking_status_encoder, assembler, dtc])
-pipeline = Pipeline(stages=[ever_married_indexer, Residence_type_indexer, ever_married_encoder,  Residence_type_encoder ])
+pipeline = Pipeline(stages=[gender_indexer, ever_married_indexer, work_type_indexer, Residence_type_indexer, smoking_status_indexer, gender_encoder, ever_married_encoder, work_type_encoder, Residence_type_encoder,smoking_status_encoder, assembler, dtc])
+
+#----categorizing each column as vectors and indexes-----
+
+gender_indexer = StringIndexer(inputCol='gender', outputCol='genderIndex')
+gender_encoder = OneHotEncoder(inputCol='genderIndex', outputCol='genderVec')
+ever_married_indexer = StringIndexer(inputCol='ever_married', outputCol='ever_marriedIndex')
+ever_married_encoder = OneHotEncoder(inputCol='ever_marriedIndex', outputCol='ever_marriedVec')
+work_type_indexer = StringIndexer(inputCol='work_type', outputCol='work_typeIndex')
+work_type_encoder = OneHotEncoder(inputCol='work_typeIndex', outputCol='work_typeVec')
+Residence_type_indexer = StringIndexer(inputCol='Residence_type', outputCol='Residence_typeIndex')
+Residence_type_encoder = OneHotEncoder(inputCol='Residence_typeIndex', outputCol='Residence_typeVec')
+smoking_status_indexer = StringIndexer(inputCol='smoking_status', outputCol='smoking_statusIndexer')
+smoking_status_encoder = OneHotEncoder(inputCol='smoking_statusIndexer', outputCol='smoking_statusVec')
 
 #-----Perform ML algorithm---
 #---Split data to train and test-------------
@@ -141,8 +181,13 @@ dtc_predictions = model.transform(test_data)
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 
 #----Perform accuracy test using RawPrediction ----
-acc_evaluator = MulticlassClassificationEvaluator(labelCol="stroke", predictionCol="rawPrediction", metricName="accuracy")
-print('A Decision Tree algorithm accuracy is: {0:2.2f}%'.format(dtc_acc*100))
+
+acc_evaluator = MulticlassClassificationEvaluator(labelCol="stroke", predictionCol="prediction", metricName="accuracy")
+
+dtc_acc = acc_evaluator.evaluate(dtc_predictions)
+print('A Decision Tree algorithm had an accuracy of: {0:2.2f}%'.format(dtc_acc*100))
+
+#---A Decision Tree algorithm had an accuracy of: 98.38%--- HIGHLY BIASED DATA
 
 
 
