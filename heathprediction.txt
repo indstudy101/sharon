@@ -167,7 +167,7 @@ smoking_status_encoder = OneHotEncoder(inputCol='smoking_statusIndexer', outputC
 #-----Perform ML algorithm---
 #---Split data to train and test-------------
 
-train_data,test_data = train_f.randomSplit([0.7,0.3])
+train_data,test_data = train_f.randomSplit([0.8,0.2])
 
 ##----- Fitting the train data using pipeline created for train------
 model = pipeline.fit(train_data)
