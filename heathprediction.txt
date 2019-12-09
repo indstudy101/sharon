@@ -131,25 +131,9 @@ train.filter((train['stroke'] == 1) & (train['age'] > '40')).count()
 
 from pyspark.ml.feature import (VectorAssembler,OneHotEncoder, StringIndexer)
 
-##----Using assembler to use categorical variables in ML algorithm----
+#--- Import Decisiontreeclassifier package---
+from pyspark.ml.classification import DecisionTreeClassifier
 
-assembler = VectorAssembler(inputCols=['genderVec',
-'age',
-'hypertension',
-'heart_disease',
-'ever_marriedVec',
-'work_typeVec',
-'Residence_typeVec',
-'avg_glucose_level',
-'bmi',
-'smoking_statusVec'],outputCol='features')
-
-#----PipelineStages.
-
-#------Import Pipeline-----------
-from pyspark.ml import Pipeline
-
-pipeline = Pipeline(stages=[gender_indexer, ever_married_indexer, work_type_indexer, Residence_type_indexer, smoking_status_indexer, gender_encoder, ever_married_encoder, work_type_encoder, Residence_type_encoder,smoking_status_encoder, assembler, dtc])
 
 #----categorizing each column as vectors and indexes-----
 
@@ -164,10 +148,36 @@ Residence_type_encoder = OneHotEncoder(inputCol='Residence_typeIndex', outputCol
 smoking_status_indexer = StringIndexer(inputCol='smoking_status', outputCol='smoking_statusIndexer')
 smoking_status_encoder = OneHotEncoder(inputCol='smoking_statusIndexer', outputCol='smoking_statusVec')
 
+
+##----Using assembler to use categorical variables in ML algorithm----
+
+assembler = VectorAssembler(inputCols=['genderVec',
+'age',
+'hypertension',
+'heart_disease',
+'ever_marriedVec',
+'work_typeVec',
+'Residence_typeVec',
+'avg_glucose_level',
+'bmi',
+'smoking_statusVec'],outputCol='features')
+
+#---Inserting values to the classifier---
+dtc = DecisionTreeClassifier(labelCol='stroke',featuresCol='features')
+
+#------Import Pipeline-----------
+from pyspark.ml import Pipeline
+
+pipeline = Pipeline(stages=[gender_indexer, ever_married_indexer, work_type_indexer, Residence_type_indexer, smoking_status_indexer, gender_encoder, ever_married_encoder, work_type_encoder, Residence_type_encoder,smoking_status_encoder, assembler, dtc])
+
+
 #-----Perform ML algorithm---
 #---Split data to train and test-------------
 
-train_data,test_data = train_f.randomSplit([0.8,0.2])
+train_data,test_data = train_f.randomSplit([0.7,0.3], seed = 200)
+print("Training Dataset Count: " + str(train.count()))
+print("Test Dataset Count: " + str(test_data.count()))
+
 
 ##----- Fitting the train data using pipeline created for train------
 model = pipeline.fit(train_data)
