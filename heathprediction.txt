@@ -148,6 +148,11 @@ Residence_type_encoder = OneHotEncoder(inputCol='Residence_typeIndex', outputCol
 smoking_status_indexer = StringIndexer(inputCol='smoking_status', outputCol='smoking_statusIndexer')
 smoking_status_encoder = OneHotEncoder(inputCol='smoking_statusIndexer', outputCol='smoking_statusVec')
 
+display(gender_indexer.fit(train).transform(train))
+display(ever_married_indexer.fit(train).transform(train))
+display(work_type_indexer.fit(train).transform(train))
+display(Residence_type_indexer.fit(train).transform(train))
+display(smoking_status_indexer.fit(train).transform(train))
 
 ##----Using assembler to use categorical variables in ML algorithm----
 
@@ -168,6 +173,8 @@ dtc = DecisionTreeClassifier(labelCol='stroke',featuresCol='features')
 #------Import Pipeline-----------
 from pyspark.ml import Pipeline
 
+#---------Pipeline the workflow to be run in a specific order--------------
+
 pipeline = Pipeline(stages=[gender_indexer, ever_married_indexer, work_type_indexer, Residence_type_indexer, smoking_status_indexer, gender_encoder, ever_married_encoder, work_type_encoder, Residence_type_encoder,smoking_status_encoder, assembler, dtc])
 
 
@@ -181,6 +188,11 @@ print("Test Dataset Count: " + str(test_data.count()))
 
 ##----- Fitting the train data using pipeline created for train------
 model = pipeline.fit(train_data)
+df_model = model.transform(train_data)
+display(df_model)
+
+#---Selecting example rows to display-----
+dtc_predictions.select("prediction","probability", "stroke", "features").show(5)
 
 #-----transform test data ---
 dtc_predictions = model.transform(test_data)
@@ -190,14 +202,18 @@ dtc_predictions = model.transform(test_data)
 
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
 
-#----Perform accuracy test using RawPrediction ----
+#----Perform accuracy test using Prediction ----
 
 acc_evaluator = MulticlassClassificationEvaluator(labelCol="stroke", predictionCol="prediction", metricName="accuracy")
 
 dtc_acc = acc_evaluator.evaluate(dtc_predictions)
 print('A Decision Tree algorithm had an accuracy of: {0:2.2f}%'.format(dtc_acc*100))
 
-#---A Decision Tree algorithm had an accuracy of: 98.38%--- HIGHLY BIASED DATA
+#---A Decision Tree algorithm had an accuracy of: 98.1%--- HIGHLY BIASED DATA
 
+#------Prediction fro labels in test data-----------
 
+test_pred = model.transform(test_data)
+test_selected = test_pred.select("id", "features", "prediction","probability")
+test_selected.limit(5).toPandas()
 
